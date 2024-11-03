@@ -1,0 +1,7 @@
+name: OfferX
+version: '1.0'
+main: org.me.oneyz.offerX.OfferX
+api-version: '1.21'
+prefix: OfferX
+load: STARTUP
+authors: [ oneyz_ ]
