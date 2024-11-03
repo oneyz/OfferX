@@ -7,6 +7,7 @@ public final class OfferX extends JavaPlugin {
     @Override
     public void onEnable() {
         // Plugin startup logic
+        System.out.println("Master");
 
     }
 
