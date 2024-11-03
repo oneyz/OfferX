@@ -12,17 +12,16 @@
     <name>OfferX</name>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version> <!-- Zmieniłem z 21 na 17, aby mieć pewność, że API Bukkit/Spigot działa -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <build>
-        <defaultGoal>clean package</defaultGoal>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>3.8.1</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
