@@ -36,6 +36,19 @@ public class TradeListener implements Listener {
         if (isTradeInventory(inventoryView.getTitle())) {
             Inventory clickedInventory = event.getClickedInventory();
             int slot = event.getSlot();
+            ItemStack clickedItem = event.getCurrentItem();
+
+            if (clickedItem != null && clickedItem.getType() != Material.AIR) {
+                // Sprawdzenie, czy przedmiot został przeniesiony
+                boolean isMovingFromTrade = clickedInventory == inventoryView.getTopInventory();
+                boolean isMovingToTrade = clickedInventory == inventoryView.getBottomInventory();
+
+                if (isMovingFromTrade) {
+                    player.sendMessage(ColorUtil.translate("&e[DEBUG] Przenosisz przedmiot w GUI handlu z slotu " + event.getSlot() + " na slot " + event.getRawSlot() + "."));
+                } else if (isMovingToTrade) {
+                    player.sendMessage(ColorUtil.translate("&e[DEBUG] Przenosisz przedmiot z ekwipunku gracza do GUI handlu z slotu " + event.getSlot() + " na slot " + event.getRawSlot() + "."));
+                }
+            }
 
             if (clickedInventory == inventoryView.getTopInventory()) {
                 handleTradeInventoryClick(event, player, slot);
@@ -51,10 +64,6 @@ public class TradeListener implements Listener {
 
     private void handleTradeInventoryClick(InventoryClickEvent event, Player player, int slot) {
         ItemStack clickedItem = event.getCurrentItem();
-
-        if (clickedItem == null || clickedItem.getType() == Material.AIR) {
-            return;
-        }
 
         if (disallowedSlots.contains(slot)) {
             event.setCancelled(true);
