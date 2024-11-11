@@ -1,12 +1,11 @@
 package org.me.oneyz.offerX.events;
 
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
@@ -15,7 +14,6 @@ import org.me.oneyz.offerX.utils.ColorUtil;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class TradeListener implements Listener {
@@ -30,113 +28,75 @@ public class TradeListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        InventoryView inventoryView = event.getView();
+        InventoryView view = event.getView();
         Player player = (Player) event.getWhoClicked();
-
-        if (isTradeInventory(inventoryView.getTitle())) {
-            Inventory clickedInventory = event.getClickedInventory();
-            int slot = event.getSlot();
-            ItemStack clickedItem = event.getCurrentItem();
-
-            if (clickedItem != null && clickedItem.getType() != Material.AIR) {
-                // Sprawdzenie, czy przedmiot został przeniesiony
-                boolean isMovingFromTrade = clickedInventory == inventoryView.getTopInventory();
-                boolean isMovingToTrade = clickedInventory == inventoryView.getBottomInventory();
-
-                if (isMovingFromTrade) {
-                    player.sendMessage(ColorUtil.translate("&e[DEBUG] Przenosisz przedmiot w GUI handlu z slotu " + event.getSlot() + " na slot " + event.getRawSlot() + "."));
-                } else if (isMovingToTrade) {
-                    player.sendMessage(ColorUtil.translate("&e[DEBUG] Przenosisz przedmiot z ekwipunku gracza do GUI handlu z slotu " + event.getSlot() + " na slot " + event.getRawSlot() + "."));
-                }
-            }
-
-            if (clickedInventory == inventoryView.getTopInventory()) {
-                handleTradeInventoryClick(event, player, slot);
-            } else if (clickedInventory == inventoryView.getBottomInventory()) {
-                handlePlayerInventoryClick(event, player, slot);
-            }
-
-            if (event.isShiftClick()) {
-                handleShiftClick(event, player, inventoryView);
-            }
-        }
-    }
-
-    private void handleTradeInventoryClick(InventoryClickEvent event, Player player, int slot) {
-        ItemStack clickedItem = event.getCurrentItem();
-
-        if (disallowedSlots.contains(slot)) {
-            event.setCancelled(true);
-            player.sendMessage(ColorUtil.translate("&c[DEBUG] Nie możesz klikać na tym slocie w GUI handlu: " + slot));
-        } else {
-            player.sendMessage(ColorUtil.translate("&a[DEBUG] Kliknięto w dozwolony slot handlu: " + slot));
-        }
-    }
-
-    private void handlePlayerInventoryClick(InventoryClickEvent event, Player player, int slot) {
-        player.sendMessage(ColorUtil.translate("&b[DEBUG] Kliknięto w ekwipunku gracza na slocie: " + slot));
-    }
-
-    private void handleShiftClick(InventoryClickEvent event, Player player, InventoryView inventoryView) {
         Inventory clickedInventory = event.getClickedInventory();
-        Inventory topInventory = inventoryView.getTopInventory();
-        Inventory bottomInventory = inventoryView.getBottomInventory();
+        int fromSlot = event.getSlot();
+        ItemStack clickedItem = event.getCurrentItem();
+        InventoryAction action = event.getAction();
 
-        if (clickedInventory == topInventory) {
-            player.sendMessage(ColorUtil.translate("&e[DEBUG] Przenosisz przedmiot z GUI handlu do ekwipunku gracza (SHIFT + CLICK)."));
-        } else if (clickedInventory == bottomInventory) {
-            player.sendMessage(ColorUtil.translate("&e[DEBUG] Przenosisz przedmiot z ekwipunku gracza do GUI handlu (SHIFT + CLICK)."));
-        }
-    }
-
-    @EventHandler
-    public void onInventoryDrag(InventoryDragEvent event) {
-        InventoryView inventoryView = event.getView();
-        Player player = (Player) event.getWhoClicked();
-
-        if (isTradeInventory(inventoryView.getTitle())) {
-            Map<Integer, ItemStack> draggedItems = event.getNewItems();
-            boolean draggingToTrade = false;
-            boolean draggingFromInventory = false;
-
-            for (int slot : event.getRawSlots()) {
-                if (slot < inventoryView.getTopInventory().getSize()) {
-                    draggingToTrade = true;
-                    if (disallowedSlots.contains(slot)) {
-                        event.setCancelled(true);
-                        player.sendMessage(ColorUtil.translate("&c[DEBUG] Nie możesz przeciągać przedmiotów do niedozwolonego slotu w GUI handlu: " + slot));
-                        return;
-                    }
-                } else {
-                    draggingFromInventory = true;
-                }
+        // Sprawdzenie, czy to GUI handlu
+        if (isTradeInventory(view.getTitle())) {
+            // Ignorowanie nieistotnych akcji
+            if (action == InventoryAction.NOTHING || clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
             }
 
-            if (draggingToTrade && draggingFromInventory) {
-                player.sendMessage(ColorUtil.translate("&e[DEBUG] Przeciągnąłeś przedmiot z ekwipunku do GUI handlu."));
-            } else if (draggingToTrade) {
-                player.sendMessage(ColorUtil.translate("&e[DEBUG] Przeciągnąłeś przedmiot w obrębie GUI handlu."));
-            } else if (draggingFromInventory) {
-                player.sendMessage(ColorUtil.translate("&e[DEBUG] Przeciągnąłeś przedmiot w obrębie ekwipunku."));
+            // Obsługa kliknięcia w GUI handlu
+            if (clickedInventory == view.getTopInventory()) {
+                handleTradeGuiClick(event, player, fromSlot, clickedItem, action, view);
+            }
+            // Obsługa kliknięcia w ekwipunku gracza
+            else if (clickedInventory == view.getBottomInventory()) {
+                handlePlayerInventoryClick(event, player, fromSlot, clickedItem, action, view);
             }
         }
     }
 
-    @EventHandler
-    public void onInventoryMoveItem(InventoryMoveItemEvent event) {
-        Inventory source = event.getSource();
-        Inventory destination = event.getDestination();
-        ItemStack item = event.getItem();
+    private void handleTradeGuiClick(InventoryClickEvent event, Player player, int fromSlot, ItemStack clickedItem, InventoryAction action, InventoryView view) {
+        if (disallowedSlots.contains(fromSlot)) {
+            event.setCancelled(true);
+            player.sendMessage(ColorUtil.translate("&cNie możesz używać tego slotu w GUI handlu: " + fromSlot));
+        } else {
+            int toSlot = event.getRawSlot() - view.getTopInventory().getSize(); // oblicza slot docelowy w ekwipunku
+            String actionDesc = describeAction(action, clickedItem, fromSlot, toSlot);
+            player.sendMessage(ColorUtil.translate("&aAkcja w GUI handlu: " + actionDesc));
+        }
+    }
 
-        if (isTradeInventory(source.getLocation() == null ? "" : source.getLocation().toString()) ||
-                isTradeInventory(destination.getLocation() == null ? "" : destination.getLocation().toString())) {
-            System.out.println("DEBUG: Próba przeniesienia przedmiotu między ekwipunkiem a GUI handlu.");
-            System.out.println("Przedmiot: " + item.getType() + ", Ilość: " + item.getAmount());
+    private void handlePlayerInventoryClick(InventoryClickEvent event, Player player, int fromSlot, ItemStack clickedItem, InventoryAction action, InventoryView view) {
+        int toSlot = event.getRawSlot(); // miejsce docelowe (GUI handlu)
+        String actionDesc = describeAction(action, clickedItem, fromSlot, toSlot);
+        player.sendMessage(ColorUtil.translate("&bAkcja w ekwipunku gracza: " + actionDesc));
+    }
 
-            if (disallowedSlots.contains(destination.firstEmpty())) {
-                event.setCancelled(true);
-                System.out.println("DEBUG: Przenoszenie anulowane - próba przeniesienia do zablokowanego slotu.");
-            }
+    private String describeAction(InventoryAction action, ItemStack item, int fromSlot, int toSlot) {
+        String itemDesc = item != null && item.getType() != Material.AIR ? item.getType().toString() + " x" + item.getAmount() : "brak przedmiotu";
+        String slotDesc = "Z slota " + fromSlot + " do slota " + toSlot;
+
+        switch (action) {
+            case PICKUP_ALL:
+                return "Zabrano cały przedmiot: " + itemDesc + ". " + slotDesc;
+            case PICKUP_HALF:
+                return "Zabrano połowę przedmiotu: " + itemDesc + ". " + slotDesc;
+            case PICKUP_ONE:
+                return "Zabrano jeden z przedmiotów: " + itemDesc + ". " + slotDesc;
+            case PICKUP_SOME:
+                return "Zabrano część przedmiotu: " + itemDesc + ". " + slotDesc;
+            case PLACE_ALL:
+                return "Odłożono cały przedmiot: " + itemDesc + ". " + slotDesc;
+            case PLACE_ONE:
+                return "Odłożono jeden z przedmiotów: " + itemDesc + ". " + slotDesc;
+            case PLACE_SOME:
+                return "Odłożono część przedmiotu: " + itemDesc + ". " + slotDesc;
+            case SWAP_WITH_CURSOR:
+                return "Zamieniono przedmiot pod kursorem z: " + itemDesc + ". " + slotDesc;
+            case MOVE_TO_OTHER_INVENTORY:
+                return "Przeniesiono przedmiot do innego ekwipunku: " + itemDesc + ". " + slotDesc;
+            case HOTBAR_SWAP:
+                return "Zamieniono przedmiot z hotbara: " + itemDesc + ". " + slotDesc;
+            default:
+                return "Nieznana akcja: " + action + " na przedmiocie: " + itemDesc;
         }
     }
 
